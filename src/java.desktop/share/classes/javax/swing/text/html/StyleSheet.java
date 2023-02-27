@@ -1024,7 +1024,7 @@ public class StyleSheet extends StyleContext {
      * Otherwise, it will return null.
      * This method is case-insensitive.
      * <p>
-     * The following code defines instances of the same color :
+     * The following code defines instances of the same color:
      * {@snippet lang="java" :
      *   import java.awt.Color;
      *   import javax.swing.text.html.StyleSheet;
