@@ -204,8 +204,9 @@ final class DualPivotQuicksort {
             int e4 = (e3 + e5) >>> 1;
             int a3 = a[e3];
 
-            boolean isRandom =
-                a[e1] > a[e2] || a[e2] > a3 || a3 > a[e4] || a[e4] > a[e5];
+            final boolean isRadixRandom = (size > MIN_RADIX_SORT_SIZE)
+                && (sorter == null || bits > 0)
+                && (a[e1] > a[e2] || a[e2] > a3 || a3 > a[e4] || a[e4] > a[e5]);
 
             /*
              * Sort these elements in place by the combination
@@ -242,15 +243,15 @@ final class DualPivotQuicksort {
                 }
             }
 
-            /*
-             * Try Radix sort on large fully random data,
-             * taking into account parallel context.
-             */
-            isRandom &= a[e1] < a[e2] && a[e2] < a[e3] && a[e3] < a[e4] && a[e4] < a[e5];
-
-            if (size > MIN_RADIX_SORT_SIZE && isRandom && (sorter == null || bits > 0)
-                    && tryRadixSort(sorter, a, low, high)) {
-                return;
+            if (isRadixRandom) {
+                /*
+                 * Try Radix sort on large fully random data,
+                 * taking into account parallel context.
+                 */
+                if (a[e1] < a[e2] && a[e2] < a[e3] && a[e3] < a[e4] && a[e4] < a[e5]
+                        && tryRadixSort(sorter, a, low, high)) {
+                    return;
+                }
             }
 
             /*
@@ -1060,8 +1061,9 @@ final class DualPivotQuicksort {
             int e4 = (e3 + e5) >>> 1;
             long a3 = a[e3];
 
-            boolean isRandom =
-                a[e1] > a[e2] || a[e2] > a3 || a3 > a[e4] || a[e4] > a[e5];
+            final boolean isRadixRandom = (size > MIN_RADIX_SORT_SIZE)
+                && (sorter == null || bits > 0)
+                && (a[e1] > a[e2] || a[e2] > a3 || a3 > a[e4] || a[e4] > a[e5]);
 
             /*
              * Sort these elements in place by the combination
@@ -1098,15 +1100,15 @@ final class DualPivotQuicksort {
                 }
             }
 
-            /*
-             * Try Radix sort on large fully random data,
-             * taking into account parallel context.
-             */
-            isRandom &= a[e1] < a[e2] && a[e2] < a[e3] && a[e3] < a[e4] && a[e4] < a[e5];
-
-            if (size > MIN_RADIX_SORT_SIZE && isRandom && (sorter == null || bits > 0)
-                    && tryRadixSort(sorter, a, low, high)) {
-                return;
+            if (isRadixRandom) {
+                /*
+                 * Try Radix sort on large fully random data,
+                 * taking into account parallel context.
+                 */
+                if (a[e1] < a[e2] && a[e2] < a[e3] && a[e3] < a[e4] && a[e4] < a[e5]
+                        && tryRadixSort(sorter, a, low, high)) {
+                    return;
+                }
             }
 
             /*
@@ -2716,8 +2718,9 @@ final class DualPivotQuicksort {
             int e4 = (e3 + e5) >>> 1;
             float a3 = a[e3];
 
-            boolean isRandom =
-                a[e1] > a[e2] || a[e2] > a3 || a3 > a[e4] || a[e4] > a[e5];
+            final boolean isRadixRandom = (size > MIN_RADIX_SORT_SIZE)
+                && (sorter == null || bits > 0)
+                && (a[e1] > a[e2] || a[e2] > a3 || a3 > a[e4] || a[e4] > a[e5]);
 
             /*
              * Sort these elements in place by the combination
@@ -2754,15 +2757,15 @@ final class DualPivotQuicksort {
                 }
             }
 
-            /*
-             * Try Radix sort on large fully random data,
-             * taking into account parallel context.
-             */
-            isRandom &= a[e1] < a[e2] && a[e2] < a[e3] && a[e3] < a[e4] && a[e4] < a[e5];
-
-            if (size > MIN_RADIX_SORT_SIZE && isRandom && (sorter == null || bits > 0)
-                    && tryRadixSort(sorter, a, low, high)) {
-                return;
+            if (isRadixRandom) {
+                /*
+                 * Try Radix sort on large fully random data,
+                 * taking into account parallel context.
+                 */
+                if (a[e1] < a[e2] && a[e2] < a[e3] && a[e3] < a[e4] && a[e4] < a[e5]
+                        && tryRadixSort(sorter, a, low, high)) {
+                    return;
+                }
             }
 
             /*
@@ -3602,8 +3605,9 @@ final class DualPivotQuicksort {
             int e4 = (e3 + e5) >>> 1;
             double a3 = a[e3];
 
-            boolean isRandom =
-                a[e1] > a[e2] || a[e2] > a3 || a3 > a[e4] || a[e4] > a[e5];
+            final boolean isRadixRandom = (size > MIN_RADIX_SORT_SIZE)
+                && (sorter == null || bits > 0)
+                && (a[e1] > a[e2] || a[e2] > a3 || a3 > a[e4] || a[e4] > a[e5]);
 
             /*
              * Sort these elements in place by the combination
@@ -3640,15 +3644,15 @@ final class DualPivotQuicksort {
                 }
             }
 
-            /*
-             * Try Radix sort on large fully random data,
-             * taking into account parallel context.
-             */
-            isRandom &= a[e1] < a[e2] && a[e2] < a[e3] && a[e3] < a[e4] && a[e4] < a[e5];
-
-            if (size > MIN_RADIX_SORT_SIZE && isRandom && (sorter == null || bits > 0)
-                    && tryRadixSort(sorter, a, low, high)) {
-                return;
+            if (isRadixRandom) {
+                /*
+                 * Try Radix sort on large fully random data,
+                 * taking into account parallel context.
+                 */
+                if (a[e1] < a[e2] && a[e2] < a[e3] && a[e3] < a[e4] && a[e4] < a[e5]
+                        && tryRadixSort(sorter, a, low, high)) {
+                    return;
+                }
             }
 
             /*
