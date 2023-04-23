@@ -117,12 +117,11 @@ final class DualPivotQuicksort {
     private static final int MAX_RECURSION_DEPTH = 64 << 1;
 
     /**
-     * Max size of additional buffer,
-     *      limited by max_heap / 16 or 2 GB max,
-     *      divide by 8 as (size * 8) bytes for long/double type.
+     * Max size of additional buffer in bytes,
+     *      limited by max_heap / 16 or 2 GB max.
      */
     private static final int MAX_BUFFER_SIZE =
-            ( (int) Math.min(Runtime.getRuntime().maxMemory() >>> 4L, Integer.MAX_VALUE) ) >> 3;
+            (int) Math.min(Runtime.getRuntime().maxMemory() >>> 4L, Integer.MAX_VALUE);
 
     /**
      * Sorts the specified range of the array using parallel merge
@@ -4563,9 +4562,11 @@ final class DualPivotQuicksort {
      *         otherwise created buffer
      */
     @SuppressWarnings("unchecked")
-    private static <T> T tryAllocate(Class<T> clazz, int size) {
+    private static <T> T tryAllocate(final Class<T> clazz, final int size) {
         try {
-            return (size > MAX_BUFFER_SIZE) ? null :
+			final int maxSize = MAX_BUFFER_SIZE >> (
+				((clazz == int[].class) || (clazz == float[].class)) ? 2 : 3);
+            return (size > maxSize) ? null :
                 (T) U.allocateUninitializedArray(clazz.componentType(), size);
         } catch (OutOfMemoryError e) {
             return null;
