@@ -4557,17 +4557,17 @@ final class DualPivotQuicksort {
      * Tries to allocate additional buffer.
      *
      * @param clazz the given array class
-     * @param size the size of additional buffer
-     * @return {@code null} if requested size is too large or there is not enough memory,
+     * @param length the length of additional buffer
+     * @return {@code null} if requested buffer is too big or there is not enough memory,
      *         otherwise created buffer
      */
     @SuppressWarnings("unchecked")
-    private static <T> T tryAllocate(final Class<T> clazz, final int size) {
+    private static <T> T tryAllocate(final Class<T> clazz, final int length) {
         try {
-			final int maxSize = MAX_BUFFER_SIZE >> (
-				((clazz == int[].class) || (clazz == float[].class)) ? 2 : 3);
-            return (size > maxSize) ? null :
-                (T) U.allocateUninitializedArray(clazz.componentType(), size);
+            final int maxLength = MAX_BUFFER_SIZE >>
+                ((clazz == int[].class || clazz == float[].class) ? 2 : 3);
+            return (length > maxLength) ? null :
+                (T) U.allocateUninitializedArray(clazz.componentType(), length);
         } catch (OutOfMemoryError e) {
             return null;
         }
