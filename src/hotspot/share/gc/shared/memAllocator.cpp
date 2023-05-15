@@ -66,6 +66,10 @@ class MemAllocator::Allocation: StackObj {
   void check_for_valid_allocation_state() const;
 #endif
 
+  bool allocated_inside_existing_tlab() {
+    return !_allocated_outside_tlab && (_allocated_tlab_size == 0);
+  }
+
   class PreserveObj;
 
 public:
@@ -82,7 +86,7 @@ public:
   }
 
   ~Allocation() {
-    if (!check_out_of_memory()) {
+    if (!allocated_inside_existing_tlab() && !check_out_of_memory()) {
       verify_after();
       notify_allocation(_thread);
     }
