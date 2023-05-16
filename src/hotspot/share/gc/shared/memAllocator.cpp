@@ -72,12 +72,15 @@ class MemAllocator::Allocation: StackObj {
   //   - a TLAB allocation that expands due to taking a sampler induced slow path
   //   - (optionally) the enabled JVMTI event that wants to capture all allocations
 
-  bool should_notify_allocation_no_jvmti() {
-    return _allocated_outside_tlab || _allocated_tlab_size != 0 || _tlab_end_reset_for_sample;
+  bool should_notify_allocation_no_jvmti_vmobjalloc() {
+    return _allocated_outside_tlab ||
+           _allocated_tlab_size != 0 ||
+           _tlab_end_reset_for_sample;
   }
 
   bool should_notify_allocation() {
-    return should_notify_allocation_no_jvmti() || JvmtiExport::should_post_vm_object_alloc();
+    return should_notify_allocation_no_jvmti_vmobjalloc() ||
+           JvmtiExport::should_post_vm_object_alloc();
   }
 
   class PreserveObj;
@@ -195,8 +198,6 @@ void MemAllocator::Allocation::check_for_valid_allocation_state() const {
 #endif
 
 void MemAllocator::Allocation::notify_allocation_jvmti_sampler() {
-  assert(should_notify_allocation(), "Should have checked before");
-
   // support for JVMTI VMObjectAlloc event (no-op if not enabled)
   JvmtiExport::vm_object_alloc_event_collector(obj());
 
@@ -205,7 +206,7 @@ void MemAllocator::Allocation::notify_allocation_jvmti_sampler() {
     return;
   }
 
-  if (!should_notify_allocation_no_jvmti()) {
+  if (!should_notify_allocation_no_jvmti_vmobjalloc()) {
     // Called here only for JVMTI object alloc
     return;
   }
