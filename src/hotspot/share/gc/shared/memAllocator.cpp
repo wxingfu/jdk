@@ -54,8 +54,8 @@ class MemAllocator::Allocation: StackObj {
   bool                _tlab_end_reset_for_sample;
 
   bool check_out_of_memory();
-  void verify_before();
-  void verify_after();
+  void verify_before() NOT_DEBUG_RETURN;
+  void verify_after() NOT_DEBUG_RETURN;
   void notify_allocation(JavaThread* thread);
   void notify_allocation_jvmti_sampler();
   void notify_allocation_low_memory_detector();
@@ -68,9 +68,9 @@ class MemAllocator::Allocation: StackObj {
 
   // Should notify allocation when either of these happen:
   //   - a non-TLAB allocation;
-  //   - a TLAB allocation that refills the TLAB
-  //   - a TLAB allocation that expands due to taking a sampler induced slow path
-  //   - (optionally) the enabled JVMTI event that wants to capture all allocations
+  //   - a TLAB allocation that refills the TLAB;
+  //   - a TLAB allocation that expands due to taking a sampler induced slow path;
+  //   - (optionally) the enabled JVMTI event that wants to capture all allocations;
 
   bool should_notify_allocation_no_jvmti_vmobjalloc() {
     return _allocated_outside_tlab ||
@@ -160,17 +160,18 @@ bool MemAllocator::Allocation::check_out_of_memory() {
   }
 }
 
+#ifdef ASSERT
 void MemAllocator::Allocation::verify_before() {
   // Clear unhandled oops for memory allocation.  Memory allocation might
   // not take out a lock if from tlab, so clear here.
   JavaThread* THREAD = _thread; // For exception macros.
   assert(!HAS_PENDING_EXCEPTION, "Should not allocate with exception pending");
-  debug_only(check_for_valid_allocation_state());
+  check_for_valid_allocation_state();
   assert(!Universe::heap()->is_gc_active(), "Allocation during gc not allowed");
 }
 
 void MemAllocator::Allocation::verify_after() {
-  NOT_PRODUCT(check_for_bad_heap_word_value();)
+  check_for_bad_heap_word_value();
 }
 
 void MemAllocator::Allocation::check_for_bad_heap_word_value() const {
@@ -185,7 +186,6 @@ void MemAllocator::Allocation::check_for_bad_heap_word_value() const {
   }
 }
 
-#ifdef ASSERT
 void MemAllocator::Allocation::check_for_valid_allocation_state() const {
   // How to choose between a pending exception and a potential
   // OutOfMemoryError?  Don't allow pending exceptions.
