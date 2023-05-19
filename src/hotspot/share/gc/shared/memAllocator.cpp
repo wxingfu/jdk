@@ -207,7 +207,7 @@ void MemAllocator::Allocation::notify_allocation_jvmti_sampler() {
   }
 
   if (!should_notify_allocation_no_jvmti_vmobjalloc()) {
-    // Called here only for JVMTI object alloc
+    // Called here only for JVMTI VMObjectAlloc event
     return;
   }
 
