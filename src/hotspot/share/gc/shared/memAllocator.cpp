@@ -56,7 +56,6 @@ class MemAllocator::Allocation: StackObj {
   bool check_out_of_memory();
   void verify_before() NOT_DEBUG_RETURN;
   void verify_after() NOT_DEBUG_RETURN;
-  void notify_allocation(JavaThread* thread);
   void notify_allocation_jvmti_sampler();
   void notify_allocation_low_memory_detector();
   void notify_allocation_jfr_sampler();
@@ -65,23 +64,6 @@ class MemAllocator::Allocation: StackObj {
 #ifdef ASSERT
   void check_for_valid_allocation_state() const;
 #endif
-
-  // Should notify allocation when either of these happen:
-  //   - a non-TLAB allocation;
-  //   - a TLAB allocation that refills the TLAB;
-  //   - a TLAB allocation that expands due to taking a sampler induced slow path;
-  //   - (optionally) the enabled JVMTI event that wants to capture all allocations;
-
-  bool should_notify_allocation_no_jvmti_vmobjalloc() {
-    return _allocated_outside_tlab ||
-           _allocated_tlab_size != 0 ||
-           _tlab_end_reset_for_sample;
-  }
-
-  bool should_notify_allocation() {
-    return should_notify_allocation_no_jvmti_vmobjalloc() ||
-           JvmtiExport::should_post_vm_object_alloc();
-  }
 
   class PreserveObj;
 
@@ -101,8 +83,28 @@ public:
   ~Allocation() {
     if (!check_out_of_memory()) {
       verify_after();
-      if (should_notify_allocation()) {
-        notify_allocation(_thread);
+
+      // Real allocation allocates actual memory: either allocates
+      // outside the TLAB, or allocates a new TLAB.
+      const bool is_real_allocation = _allocated_outside_tlab ||
+                                      (_allocated_tlab_size != 0);
+
+      if (is_real_allocation) {
+        notify_allocation_low_memory_detector();
+        notify_allocation_jfr_sampler();
+      }
+
+      if ((is_real_allocation || _tlab_end_reset_for_sample) &&
+          JvmtiExport::should_post_sampled_object_alloc()) {
+        notify_allocation_jvmti_sampler();
+      }
+
+      if (JvmtiExport::should_post_vm_object_alloc()) {
+        JvmtiExport::record_vm_internal_object_allocation(obj());
+      }
+
+      if (DTraceAllocProbes) {
+        notify_allocation_dtrace_sampler(_thread);
       }
     }
   }
@@ -198,16 +200,8 @@ void MemAllocator::Allocation::check_for_valid_allocation_state() const {
 #endif
 
 void MemAllocator::Allocation::notify_allocation_jvmti_sampler() {
-  // support for JVMTI VMObjectAlloc event (no-op if not enabled)
-  JvmtiExport::vm_object_alloc_event_collector(obj());
-
   if (!JvmtiExport::should_post_sampled_object_alloc()) {
     // Sampling disabled
-    return;
-  }
-
-  if (!should_notify_allocation_no_jvmti_vmobjalloc()) {
-    // Called here only for JVMTI VMObjectAlloc event
     return;
   }
 
@@ -254,21 +248,13 @@ void MemAllocator::Allocation::notify_allocation_jfr_sampler() {
 }
 
 void MemAllocator::Allocation::notify_allocation_dtrace_sampler(JavaThread* thread) {
-  if (DTraceAllocProbes) {
-    // support for Dtrace object alloc event (no-op most of the time)
-    Klass* klass = obj()->klass();
-    size_t word_size = _allocator._word_size;
-    if (klass != nullptr && klass->name() != nullptr) {
-      SharedRuntime::dtrace_object_alloc(thread, obj(), word_size);
-    }
+  assert(DTraceAllocProbes, "Should have been checked before");
+  // support for Dtrace object alloc event (no-op most of the time)
+  Klass* klass = obj()->klass();
+  size_t word_size = _allocator._word_size;
+  if (klass != nullptr && klass->name() != nullptr) {
+    SharedRuntime::dtrace_object_alloc(thread, obj(), word_size);
   }
-}
-
-void MemAllocator::Allocation::notify_allocation(JavaThread* thread) {
-  notify_allocation_low_memory_detector();
-  notify_allocation_jfr_sampler();
-  notify_allocation_dtrace_sampler(thread);
-  notify_allocation_jvmti_sampler();
 }
 
 HeapWord* MemAllocator::mem_allocate_outside_tlab(Allocation& allocation) const {
