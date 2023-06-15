@@ -47,7 +47,7 @@ import jdk.internal.misc.Unsafe;
  *
  * @version 2022.06.14
  *
- * @since 1.7 * 14 ^ 21
+ * @since 1.7 * 14 ^ 22
  */
 final class DualPivotQuicksort {
 
@@ -121,7 +121,7 @@ final class DualPivotQuicksort {
      *      limited by max_heap / 16 or 2 GB max.
      */
     private static final int MAX_BUFFER_SIZE =
-            (int) Math.min(Runtime.getRuntime().maxMemory() >>> 4L, Integer.MAX_VALUE);
+            (int) Math.min(Runtime.getRuntime().maxMemory() >>> 4, Integer.MAX_VALUE);
 
     /**
      * Sorts the specified range of the array using parallel merge
@@ -207,7 +207,7 @@ final class DualPivotQuicksort {
             /*
              * Check large random data, taking into account parallel context.
              */
-            final boolean isRadixRandom = (size > MIN_RADIX_SORT_SIZE)
+            boolean isLargeRandom = size > MIN_RADIX_SORT_SIZE
                 && (sorter == null || bits > 0)
                 && (a[e1] > a[e2] || a[e2] > a3 || a3 > a[e4] || a[e4] > a[e5]);
 
@@ -249,8 +249,8 @@ final class DualPivotQuicksort {
             /*
              * Try Radix sort on large fully random data.
              */
-            if (isRadixRandom
-                    && (a[e1] < a[e2] && a[e2] < a[e3] && a[e3] < a[e4] && a[e4] < a[e5])
+            if (isLargeRandom
+                    && a[e2] < a[e3] && a[e3] < a[e4]
                     && tryRadixSort(sorter, a, low, high)) {
                 return;
             }
@@ -1065,7 +1065,7 @@ final class DualPivotQuicksort {
             /*
              * Check large random data, taking into account parallel context.
              */
-            final boolean isRadixRandom = (size > MIN_RADIX_SORT_SIZE)
+            boolean isLargeRandom = size > MIN_RADIX_SORT_SIZE
                 && (sorter == null || bits > 0)
                 && (a[e1] > a[e2] || a[e2] > a3 || a3 > a[e4] || a[e4] > a[e5]);
 
@@ -1107,8 +1107,8 @@ final class DualPivotQuicksort {
             /*
              * Try Radix sort on large fully random data.
              */
-            if (isRadixRandom
-                    && (a[e1] < a[e2] && a[e2] < a[e3] && a[e3] < a[e4] && a[e4] < a[e5])
+            if (isLargeRandom
+                    && a[e2] < a[e3] && a[e3] < a[e4]
                     && tryRadixSort(sorter, a, low, high)) {
                 return;
             }
@@ -2723,7 +2723,7 @@ final class DualPivotQuicksort {
             /*
              * Check large random data, taking into account parallel context.
              */
-            final boolean isRadixRandom = (size > MIN_RADIX_SORT_SIZE)
+            boolean isLargeRandom = size > MIN_RADIX_SORT_SIZE
                 && (sorter == null || bits > 0)
                 && (a[e1] > a[e2] || a[e2] > a3 || a3 > a[e4] || a[e4] > a[e5]);
 
@@ -2765,8 +2765,8 @@ final class DualPivotQuicksort {
             /*
              * Try Radix sort on large fully random data.
              */
-            if (isRadixRandom
-                    && (a[e1] < a[e2] && a[e2] < a[e3] && a[e3] < a[e4] && a[e4] < a[e5])
+            if (isLargeRandom
+                    && a[e2] < a[e3] && a[e3] < a[e4]
                     && tryRadixSort(sorter, a, low, high)) {
                 return;
             }
@@ -3611,7 +3611,7 @@ final class DualPivotQuicksort {
             /*
              * Check large random data, taking into account parallel context.
              */
-            final boolean isRadixRandom = (size > MIN_RADIX_SORT_SIZE)
+            boolean isLargeRandom = size > MIN_RADIX_SORT_SIZE
                 && (sorter == null || bits > 0)
                 && (a[e1] > a[e2] || a[e2] > a3 || a3 > a[e4] || a[e4] > a[e5]);
 
@@ -3653,8 +3653,8 @@ final class DualPivotQuicksort {
             /*
              * Try Radix sort on large fully random data.
              */
-            if (isRadixRandom
-                    && (a[e1] < a[e2] && a[e2] < a[e3] && a[e3] < a[e4] && a[e4] < a[e5])
+            if (isLargeRandom
+                    && a[e2] < a[e3] && a[e3] < a[e4]
                     && tryRadixSort(sorter, a, low, high)) {
                 return;
             }
@@ -4562,11 +4562,11 @@ final class DualPivotQuicksort {
      *         otherwise created buffer
      */
     @SuppressWarnings("unchecked")
-    private static <T> T tryAllocate(final Class<T> clazz, final int length) {
+    private static <T> T tryAllocate(Class<T> clazz, int length) {
         try {
-            final int maxLength = MAX_BUFFER_SIZE >>
-                ((clazz == int[].class || clazz == float[].class) ? 2 : 3);
-            return (length > maxLength) ? null :
+            int maxLength = MAX_BUFFER_SIZE >>
+                (clazz == int[].class || clazz == float[].class ? 2 : 3);
+            return length > maxLength ? null :
                 (T) U.allocateUninitializedArray(clazz.componentType(), length);
         } catch (OutOfMemoryError e) {
             return null;

@@ -47,7 +47,7 @@ import org.openjdk.jmh.annotations.Warmup;
  *
  * @version 2022.06.14
  *
- * @since 20
+ * @since 22
  */
 @Fork(1)
 @State(Scope.Benchmark)
