@@ -26,7 +26,6 @@ package jdk.internal.classfile.instruction;
 
 import java.lang.constant.ClassDesc;
 
-import jdk.internal.classfile.BufWriter;
 import jdk.internal.classfile.Classfile;
 import jdk.internal.classfile.CodeElement;
 import jdk.internal.classfile.CodeModel;
@@ -79,8 +78,6 @@ public sealed interface LocalVariable extends PseudoInstruction
      * {@return the end range of the local variable scope}
      */
     Label endScope();
-
-    boolean writeTo(BufWriter buf);
 
     /**
      * {@return a local variable pseudo-instruction}
