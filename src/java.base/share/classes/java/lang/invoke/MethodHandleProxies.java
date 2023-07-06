@@ -75,129 +75,102 @@ public class MethodHandleProxies {
     private MethodHandleProxies() { }  // do not instantiate
 
     /**
-     * Produces an instance of the given single-method interface which redirects
-     * its calls to the given method handle.
+     * Produces an instance, or a wrapper, of the given single-method interface,
+     * which redirects its calls to the given method handle.
      * <p>
-     * A single-method interface is an interface which declares a uniquely named method.
-     * When determining the uniquely named method of a single-method interface,
-     * the public {@code Object} methods ({@code toString}, {@code equals}, {@code hashCode})
-     * are disregarded as are any default (non-abstract) methods.
-     * For example, {@link java.util.Comparator} is a single-method interface,
-     * even though it re-declares the {@code Object.equals} method and also
-     * declares default methods, such as {@code Comparator.reverse}.
+     * A single-method interface is an interface which all its abstract methods,
+     * either declared or inherited, share a unique name. When determining the
+     * uniquely named method of a single-method interface, the public {@link
+     * Object} methods ({@link Object#toString toString}, {@link Object#equals
+     * equals}, {@link Object#hashCode hashCode}) are disregarded.
      * <p>
      * The interface must be public, not {@linkplain Class#isHidden() hidden},
-     * and not {@linkplain Class#isSealed() sealed}.
-     * No additional access checks are performed.
+     * and not {@linkplain Class#isSealed() sealed}. No additional access check
+     * is performed.
      * <p>
-     * The resulting instance of the required type will respond to
-     * invocation of the type's uniquely named method by calling
-     * the given target on the incoming arguments,
-     * and returning or throwing whatever the target
-     * returns or throws.  The invocation will be as if by
-     * {@code target.invoke}.
-     * The target's type will be checked before the
-     * instance is created, as if by a call to {@code asType},
-     * which may result in a {@code WrongMethodTypeException}.
+     * For each of the methods with the unique name, the target's type will be
+     * checked before the instance is created, as if by a call to {@link
+     * MethodHandle#asType asType} with the method's type, which may result in a
+     * {@link WrongMethodTypeException}.
      * <p>
-     * The uniquely named method is allowed to be multiply declared,
-     * with distinct type descriptors.  (E.g., it can be overloaded,
-     * or can possess bridge methods.)  All such declarations are
-     * connected directly to the target method handle.
-     * Argument and return types are adjusted by {@code asType}
-     * for each individual declaration.
+     * The resulting instance of the required type will respond to invocation of
+     * each method by calling the given target with the incoming arguments, as
+     * if by {@link MethodHandle#invoke target.invoke}, returning whatever the
+     * target returns.
      * <p>
-     * The wrapper instance will implement the requested interface
-     * and its super-types, but no other single-method interfaces.
-     * This means that the instance will not unexpectedly
-     * pass an {@code instanceof} test for any unrequested type.
-     * <p style="font-size:smaller;">
-     * <em>Implementation Note:</em>
-     * Therefore, each instance must implement a unique single-method interface.
-     * Implementations may not bundle together
-     * multiple single-method interfaces onto single implementation classes
-     * in the style of {@link java.desktop/java.awt.AWTEventMulticaster}.
+     * The {@code target} method handle may throw an <em>undeclared exception</em>,
+     * which means any checked exception (or other checked throwable) not
+     * declared by the invoked method. If this happens, the throwable will be
+     * wrapped in an instance of {@link UndeclaredThrowableException} and thrown
+     * in that wrapped form. Other exceptions thrown by the {@code target}
+     * method handle pass through.
      * <p>
-     * The method handle may throw an <em>undeclared exception</em>,
-     * which means any checked exception (or other checked throwable)
-     * not declared by the requested type's single abstract method.
-     * If this happens, the throwable will be wrapped in an instance of
-     * {@link java.lang.reflect.UndeclaredThrowableException UndeclaredThrowableException}
-     * and thrown in that wrapped form.
-     * <p>
-     * Like {@link java.lang.Integer#valueOf Integer.valueOf},
-     * {@code asInterfaceInstance} is a factory method whose results are defined
-     * by their behavior.
-     * It is not guaranteed to return a new instance for every call.
-     * <p>
-     * Because of the possibility of {@linkplain java.lang.reflect.Method#isBridge bridge methods}
-     * and other corner cases, the interface may also have several abstract methods
-     * with the same name but having distinct descriptors (types of returns and parameters).
-     * In this case, all the methods are bound in common to the one given target.
-     * The type check and effective {@code asType} conversion is applied to each
-     * method type descriptor, and all abstract methods are bound to the target in common.
-     * Beyond this type check, no further checks are made to determine that the
-     * abstract methods are related in any way.
-     * <p>
-     * Future versions of this API may accept additional types,
-     * such as abstract classes with single abstract methods.
-     * Future versions of this API may also equip wrapper instances
-     * with one or more additional public "marker" interfaces.
+     * The returned instance will implement the requested interface and its
+     * supertypes, but no other single-method interfaces. This means that the
+     * instance will not unexpectedly pass an {@code instanceof} test for any
+     * unrequested single-method interface type.
      * <p>
      * If a security manager is installed, this method is caller sensitive.
-     * During any invocation of the target method handle via the returned wrapper,
-     * the original creator of the wrapper (the caller) will be visible
-     * to context checks requested by the security manager.
+     * During any invocation of the {@code target} method handle via the
+     * returned wrapper, the original creator of the wrapper (the caller) will
+     * be visible to context checks requested by the security manager.
+     * <p>
+     * The returned instance is immutable and does not override the public
+     * methods in {@link Object}. This API may or may not return identical
+     * or equal instances for the same arguments; the {@code intfc} and
+     * {@code target} used to obtain an instance can be recovered from the
+     * instance via {@link #wrapperInstanceType wrapperInstanceType} and
+     * {@link #wrapperInstanceTarget wrapperInstanceTarget} respectively
+     * to determine the instance's behavior.
+     *
+     * @apiNote
+     * This API supports multiple abstract methods with the same name because of
+     * the possibility of {@linkplain Method#isBridge bridge methods}. It
+     * supports overloads, such as the methods in {@link Appendable}.
+     * <p>
+     * Future versions of this API may accept additional types, such as abstract
+     * classes with single abstract methods. Future versions of this API may
+     * also equip wrapper instances with one or more additional public "marker"
+     * interfaces.
+     *
+     * @implNote
+     * This API is free to reuse the same implementation instance or class for
+     * suitable inputs. It is not guaranteed to return a new instance for every
+     * call. No stable mapping is promised between the single-method interface
+     * and the wrapper's implementation class. Over time, several implementation
+     * classes might be used for the same type. If the implementation is able to
+     * prove that a wrapper of the required type has already been created for a
+     * given method handle, the implementation may return that wrapper in place
+     * of a new wrapper.
+     * <p style="font-size:smaller;">
+     * <em>Discussion:</em>
+     * Since project Leyden aims to improve startup speed, asInterfaceInstance
+     * currently shares one implementation class for each interface than one
+     * implementation class for each method handle. This is good for use cases
+     * where multiple distinct method handles are converted into one interface
+     * stored in a collection, where each instance is invoked rarely (or only
+     * once), such as property getters on a bean.
+     * <p style="font-size:smaller;">
+     * Using super-customized implementation classes for each method handle
+     * would allow constant-folding of calls through the returned instance, but
+     * it comes with a huge class definition overhead for each instance and is
+     * not feasible for rare invocation use cases like above.
+     * <p style="font-size:smaller;">
+     * The shared-class implementation is also closer in behavior to the
+     * original proxy-backed implementation. We might add another API for
+     * super-customized instances.
      *
      * @param <T> the desired type of the wrapper, a single-method interface
      * @param intfc a class object representing {@code T}
      * @param target the method handle to invoke from the wrapper
      * @return a correctly-typed wrapper for the given target
-     * @throws NullPointerException if either argument is null
-     * @throws IllegalArgumentException if the {@code intfc} is not a
-     *         valid argument to this method
-     * @throws WrongMethodTypeException if the target cannot
-     *         be converted to the type required by the requested interface
+     * @throws NullPointerException if either argument is {@code null}
+     * @throws IllegalArgumentException if {@code intfc} is not a valid
+     *         argument to this method
+     * @throws WrongMethodTypeException if {@code target} cannot be converted
+     *         to the method type required by any of the abstract methods in
+     *         {@code intfc}
      */
-    // Other notes to implementors:
-    // <p>
-    // No stable mapping is promised between the single-method interface and
-    // the implementation class C.  Over time, several implementation
-    // classes might be used for the same type.
-    // <p>
-    // If the implementation is able
-    // to prove that a wrapper of the required type
-    // has already been created for a given
-    // method handle, or for another method handle with the
-    // same behavior, the implementation may return that wrapper in place of
-    // a new wrapper.
-    // <p>
-    // This method is designed to apply to common use cases
-    // where a single method handle must interoperate with
-    // an interface that implements a function-like
-    // API.  Additional variations, such as single-abstract-method classes with
-    // private constructors, or interfaces with multiple but related
-    // entry points, must be covered by hand-written or automatically
-    // generated adapter classes.
-    //
-    /*
-     * Discussion:
-     * Since project leyden aims to improve startup speed, asInterfaceInstance
-     * will share one implementation class for each interface than one implementation
-     * class for each method handle. This is good for use cases where multiple distinct
-     * method handles are converted into one interface stored in a collection, where each
-     * instance is invoked rarely (or only once), such as property getters on a bean.
-     *
-     * Using super-customized implementation classes for each method handle would
-     * allow constant-folding of calls through the returned instance, but it comes with
-     * a huge class definition overhead for each instance and is not feasible for rare
-     * invocation use cases like above.
-     *
-     * The shared-class implementation is also closer in behavior to the original
-     * proxy-backed implementation. We might add another API for super-customized instances.
-     */
-    @SuppressWarnings({"removal",
-                       "doclint:reference"}) // cross-module links
     @CallerSensitive
     public static <T> T asInterfaceInstance(final Class<T> intfc, final MethodHandle target) {
         if (!intfc.isInterface() || !Modifier.isPublic(intfc.getModifiers()))
@@ -208,7 +181,9 @@ public class MethodHandleProxies {
             throw newIllegalArgumentException("a hidden interface", intfc.getName());
         Objects.requireNonNull(target);
         final MethodHandle mh;
-        if (System.getSecurityManager() != null) {
+        @SuppressWarnings("removal")
+        var sm = System.getSecurityManager();
+        if (sm != null) {
             final Class<?> caller = Reflection.getCallerClass();
             final ClassLoader ccl = caller != null ? caller.getClassLoader() : null;
             ReflectUtil.checkProxyPackageAccess(ccl, intfc);
@@ -251,27 +226,24 @@ public class MethodHandleProxies {
         String uniqueName = null;
         int count = 0;
         for (Method m : intfc.getMethods()) {
-            if (Modifier.isStatic(m.getModifiers()))
+            if (!Modifier.isAbstract(m.getModifiers()))
                 continue;
 
             if (isObjectMethod(m))
                 continue;
 
-            if (!Modifier.isAbstract(m.getModifiers()))
-                continue;
-
             // ensure it's SAM interface
-            String mname = m.getName();
+            String methodName = m.getName();
             if (uniqueName == null) {
-                uniqueName = mname;
-            } else if (!uniqueName.equals(mname)) {
+                uniqueName = methodName;
+            } else if (!uniqueName.equals(methodName)) {
                 // too many abstract methods
                 throw newIllegalArgumentException("not a single-method interface", intfc.getName());
             }
 
             // the field name holding the method handle for this method
             String fieldName = "m" + count++;
-            var mt = methodType(m.getReturnType(), JLRA.getExecutableSharedParameterTypes(m));
+            var mt = methodType(m.getReturnType(), JLRA.getExecutableSharedParameterTypes(m), true);
             var thrown = JLRA.getExecutableSharedExceptionTypes(m);
             var exceptionTypeDescs =
                     thrown.length == 0 ? DEFAULT_RETHROWS
@@ -296,21 +268,22 @@ public class MethodHandleProxies {
         Module targetModule = newDynamicModule(loader, referencedTypes);
 
         // generate a class file in the package of the dynamic module
-        String pn = targetModule.getName();
-        String n = intfc.getName();
-        int i = n.lastIndexOf('.');
-        String cn = i > 0 ? pn + "." + n.substring(i + 1) : pn + "." + n;
-        byte[] template = createTemplate(loader, ClassDesc.of(cn), desc(intfc), uniqueName, methods);
+        String packageName = targetModule.getName();
+        String intfcName = intfc.getName();
+        int i = intfcName.lastIndexOf('.');
+        // jdk.MHProxy#.Interface
+        String className = packageName + "." + (i > 0 ? intfcName.substring(i + 1) : intfcName);
+        byte[] template = createTemplate(loader, ClassDesc.of(className), desc(intfc), uniqueName, methods);
         // define the dynamic module to the class loader of the interface
-        var definer = new Lookup(intfc).makeHiddenClassDefiner(cn, template, Set.of(), DUMPER);
+        var definer = new Lookup(intfc).makeHiddenClassDefiner(className, template, Set.of(), DUMPER);
 
         @SuppressWarnings("removal")
         var sm = System.getSecurityManager();
         Lookup lookup;
         if (sm != null) {
-            PrivilegedAction<Lookup> pa = () -> definer.defineClassAsLookup(true);
             @SuppressWarnings("removal")
-            var l = AccessController.doPrivileged(pa);
+            var l = AccessController.doPrivileged((PrivilegedAction<Lookup>) () ->
+                    definer.defineClassAsLookup(true));
             lookup = l;
         } else {
             lookup = definer.defineClassAsLookup(true);
@@ -320,7 +293,7 @@ public class MethodHandleProxies {
         return lookup;
     }
 
-    private static class WeakReferenceHolder<T> {
+    private static final class WeakReferenceHolder<T> {
         private volatile WeakReference<T> ref;
 
         WeakReferenceHolder(T value) {
@@ -427,9 +400,9 @@ public class MethodHandleProxies {
                 cob.return_();
             });
 
-            // void ensureOriginalLookup(Lookup) checks if the given Lookup has ORIGINAL
-            // access to this class, i.e. the lookup class is this class; otherwise,
-            // IllegalAccessException is thrown
+            // private static void ensureOriginalLookup(Lookup) checks if the given Lookup
+            // has ORIGINAL access to this class, i.e. the lookup class is this class;
+            // otherwise, IllegalAccessException is thrown
             clb.withMethodBody(ENSURE_ORIGINAL_LOOKUP, MTD_void_Lookup, ACC_PRIVATE | ACC_STATIC, cob -> {
                 var failLabel = cob.newLabel();
                 // check lookupClass
@@ -464,7 +437,8 @@ public class MethodHandleProxies {
                                     bcb.aload(0);
                                     bcb.getfield(proxyDesc, mi.fieldName, CD_MethodHandle);
                                     for (int j = 0; j < mi.desc.parameterCount(); j++) {
-                                        bcb.loadInstruction(TypeKind.from(mi.desc.parameterType(j)), bcb.parameterSlot(j));
+                                        bcb.loadInstruction(TypeKind.from(mi.desc.parameterType(j)),
+                                                bcb.parameterSlot(j));
                                     }
                                     bcb.invokevirtual(CD_MethodHandle, "invokeExact", mi.desc);
                                     bcb.returnInstruction(TypeKind.from(mi.desc.returnType()));
@@ -476,7 +450,8 @@ public class MethodHandleProxies {
                                                 .new_(CD_UndeclaredThrowableException)
                                                 .dup_x1()
                                                 .swap()
-                                                .invokespecial(CD_UndeclaredThrowableException, INIT_NAME, MTD_void_Throwable)
+                                                .invokespecial(CD_UndeclaredThrowableException,
+                                                        INIT_NAME, MTD_void_Throwable)
                                                 .athrow()
                                         )
                         ));
@@ -489,26 +464,28 @@ public class MethodHandleProxies {
     }
 
     /**
-     * Determines if the given object was produced by a call to {@link #asInterfaceInstance asInterfaceInstance}.
-     * @param x any reference
-     * @return true if the reference is not null and points to an object produced by {@code asInterfaceInstance}
+     * Determines if the given object was produced by a call to {@link
+     * #asInterfaceInstance asInterfaceInstance}.
+     *
+     * @param x any reference, may be {@code null}
+     * @return {@code true} if {@code x} is not {@code null} and is an object
+     *         produced by {@code asInterfaceInstance}, {@code false} otherwise
      */
     public static boolean isWrapperInstance(Object x) {
-        return isWrapperClass(x.getClass());
-    }
-
-    private static boolean isWrapperClass(Class<?> cls) {
-        return WRAPPER_TYPES.contains(cls);
+        return x != null && WRAPPER_TYPES.contains(x.getClass());
     }
 
     /**
      * Produces or recovers a target method handle which is behaviorally
      * equivalent to the unique method of this wrapper instance.
-     * The object {@code x} must have been produced by a call to {@link #asInterfaceInstance asInterfaceInstance}.
-     * This requirement may be tested via {@link #isWrapperInstance isWrapperInstance}.
+     * The object {@code x} must have been produced by a call to {@link
+     * #asInterfaceInstance asInterfaceInstance}.
+     *
      * @param x any reference
      * @return a method handle implementing the unique method
-     * @throws IllegalArgumentException if the reference x is not to a wrapper instance
+     * @throws IllegalArgumentException if {@code x} is not a wrapper instance
+     *         or is {@code null}
+     * @see #isWrapperInstance(Object)
      */
     public static MethodHandle wrapperInstanceTarget(Object x) {
         if (!isWrapperInstance(x))
@@ -525,12 +502,15 @@ public class MethodHandleProxies {
     }
 
     /**
-     * Recovers the unique single-method interface type for which this wrapper instance was created.
-     * The object {@code x} must have been produced by a call to {@link #asInterfaceInstance asInterfaceInstance}.
-     * This requirement may be tested via {@link #isWrapperInstance isWrapperInstance}.
+     * Recovers the unique single-method interface type for which this wrapper
+     * instance was created. The object {@code x} must have been produced by a
+     * call to {@link #asInterfaceInstance asInterfaceInstance}.
+     *
      * @param x any reference
      * @return the single-method interface type for which the wrapper was created
-     * @throws IllegalArgumentException if the reference x is not to a wrapper instance
+     * @throws IllegalArgumentException if {@code x} is not a wrapper instance
+     *         or is {@code null}
+     * @see #isWrapperInstance(Object)
      */
     public static Class<?> wrapperInstanceType(Object x) {
         if (!isWrapperInstance(x))
